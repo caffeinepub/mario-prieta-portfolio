@@ -133,6 +133,10 @@ function GradientMesh() {
     const handleScroll = () => {
       rafId = requestAnimationFrame(() => {
         if (bgRef.current) {
+          // The inner element starts at top: -50vh (= -50% of viewport height).
+          // At scrollY=0 we want translateY(0) so it renders from -50vh.
+          // Parallax at 0.3x: as user scrolls down, background moves down 0.3x,
+          // which is intentionally slower than the page — creates depth.
           bgRef.current.style.transform = `translateY(${window.scrollY * 0.3}px)`;
         }
       });
@@ -155,16 +159,19 @@ function GradientMesh() {
         overflow: "hidden",
       }}
     >
-      {/* Tall inner element that parallax-scrolls */}
+      {/* Tall inner element that parallax-scrolls.
+          Starts 50vh ABOVE the viewport so the background is never blank
+          at the top when parallax pushes it down.
+          400vh total height covers the full page + parallax overhead. */}
       <div
         ref={bgRef}
         style={{
           position: "absolute",
-          top: 0,
+          top: "-50vh",
           left: 0,
           right: 0,
           height: "400vh",
-          /* Blobs distributed at 10%, 35%, 60%, 85% of element height */
+          /* Blobs at 10%, 35%, 60%, 85% of element height */
           background: `
             radial-gradient(ellipse 80% 25% at 20% 10%,  rgba(13,148,136,0.06)  0%, transparent 70%),
             radial-gradient(ellipse 60% 25% at 80% 10%,  rgba(139,92,246,0.04)  0%, transparent 70%),
@@ -679,7 +686,7 @@ function Footer() {
       <div className="portfolio-container">
         <p className="footer-copy">© {year} Mario Prieta</p>
         <p className="footer-tagline">
-          Built with love using Caffeine.ai. If you are reading this, it worked.
+          Built with Caffeine.ai. If you are reading this, it worked.
         </p>
       </div>
     </footer>

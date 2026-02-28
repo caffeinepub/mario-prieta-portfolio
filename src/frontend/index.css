@@ -153,24 +153,18 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   background: transparent;
-}
-
-/* Fade gradient lives BELOW the line + dot, not overlapping them */
-.nav-wrapper::after {
-  content: '';
-  position: absolute;
-  bottom: -20px;
-  left: 0;
-  right: 0;
-  height: 20px;
-  background: linear-gradient(to bottom, oklch(0.981 0 0 / 0.6), transparent);
-  pointer-events: none;
+  overflow: hidden;
+  /* Solid for 95% of height, only the last 4-6px fades — dot and line stay sharp */
+  -webkit-mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
 }
 
 .nav-progress-container {
   position: relative;
   width: 100%;
-  padding: 14px 0 20px; /* 20px bottom padding so dot sits above fade */
+  /* Extra bottom padding so the dot + line sit in the solid 95% zone,
+     well above the tiny 5% fade at the very bottom */
+  padding: 14px 0 24px;
 }
 
 .nav-labels {
@@ -702,17 +696,19 @@
 }
 
 .skill-pill {
+  /* Exactly matches .project-tag style for visual consistency */
   font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 450;
+  font-size: 11px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  padding: 4px 12px;
-  background-color: #F3F4F6;
-  border: none;
+  padding: 3px 9px;
+  background-color: transparent;
+  border: 1px solid oklch(0.87 0 0);
   border-radius: 100px;
-  color: #1A1A1A;
+  color: oklch(0.45 0 0);
+  letter-spacing: 0.01em;
   cursor: default;
-  /* No hover effects - static pill */
+  /* No hover effects - completely static */
 }
 
 @media (max-width: 640px) {
@@ -774,9 +770,14 @@
 
 /* === Contact === */
 
+/* Contact section: centered heading + links for bookend symmetry with hero */
+#contact .section-title {
+  text-align: center;
+}
+
 .contact-items {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: 40px;
   flex-wrap: wrap;
