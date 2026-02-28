@@ -1,12 +1,4 @@
-import {
-  ExternalLink,
-  Github,
-  Linkedin,
-  Mail,
-  MapPin,
-  Menu,
-  X,
-} from "lucide-react";
+import { ArrowUpRight, Github, Linkedin, Mail, Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useActiveSection } from "./hooks/useActiveSection";
 import { useScrollFade } from "./hooks/useScrollFade";
@@ -63,7 +55,7 @@ const PROJECTS = [
     title: "Supahost AI",
     desc: "AI-powered hospitality operations platform. Offline-first React Native app with real-time sync.",
     tags: ["React Native", "TypeScript", "PostgreSQL", "Python"],
-    link: null,
+    link: "https://app.supahost.ai/",
   },
   {
     title: "QuakeSense",
@@ -79,15 +71,21 @@ const PROJECTS = [
   },
   {
     title: "NearBuy",
-    desc: "1st Place, Generative AI Hackathon (IBM). Platform supporting local farmers through smart commerce.",
+    desc: "1st Place, Gen AI Hackathon (IBM). Platform supporting local farmers through smart commerce.",
+    tags: ["Vue.js", "Node.js", "TypeScript"],
+    link: null,
+  },
+  {
+    title: "GlobalTrends",
+    desc: "Jury Mention, AI Agents Hackathon (Maisa & EF). Content creator tool with sentiment analysis and AI-powered file processing.",
     tags: ["Vue.js", "Node.js", "TypeScript"],
     link: null,
   },
   {
     title: "HP-Enjoyers",
-    desc: "1st Place, Hack your future (HP). Educational phishing simulation tool.",
+    desc: "1st Place, Hack your future (HP). Educational phishing simulation with credential capture.",
     tags: ["Vue.js", "Python", "Flask", "Docker"],
-    link: "https://github.com/Hackathon-HP-SCDS-2024/HP-Enjoyers",
+    link: null,
   },
 ];
 
@@ -208,39 +206,73 @@ function GradientMesh() {
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function Nav() {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const activeSection = useActiveSection();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? scrollTop / docHeight : 0;
+      setScrollProgress(progress);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleNavClick = () => {
+  const sections = NAV_LINKS.map((l) => l.href.slice(1));
+  const dotPositions = sections.map((_, i) => i / (sections.length - 1));
+
+  const handleNavClick = (href: string) => {
     setMobileOpen(false);
+    const el = document.querySelector(href);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   return (
-    <header className={`nav-wrapper${scrolled ? " scrolled" : ""}`}>
-      <div className="nav-inner">
-        <nav aria-label="Primary navigation">
-          <ul className="nav-links">
-            {NAV_LINKS.map((link) => (
-              <li key={link.href}>
-                <a
-                  href={link.href}
-                  className={
-                    activeSection === link.href.slice(1) ? "active" : ""
-                  }
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+    <header className="nav-wrapper">
+      {/* Desktop: scroll progress timeline */}
+      <div className="nav-progress-container">
+        <nav className="nav-labels" aria-label="Primary navigation">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className={`nav-label-item${activeSection === link.href.slice(1) ? " active" : ""}`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavClick(link.href);
+              }}
+            >
+              {link.label}
+            </a>
+          ))}
         </nav>
+        <div className="nav-line-row">
+          <div className="nav-line-track" />
+          <div
+            className="nav-line-fill"
+            style={{
+              transform: `translateY(-50%) scaleX(${scrollProgress})`,
+            }}
+          />
+          {dotPositions.map((pos, i) => (
+            <div
+              key={sections[i]}
+              className={`nav-dot${scrollProgress >= pos - 0.01 ? " reached" : ""}`}
+              style={{ left: `${pos * 100}%` }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile bar */}
+      <div className="nav-mobile-bar">
         <button
           type="button"
           className="nav-hamburger"
@@ -260,7 +292,11 @@ function Nav() {
             key={link.href}
             href={link.href}
             className={activeSection === link.href.slice(1) ? "active" : ""}
-            onClick={handleNavClick}
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavClick(link.href);
+              setMobileOpen(false);
+            }}
           >
             {link.label}
           </a>
@@ -271,7 +307,6 @@ function Nav() {
 }
 
 function HeroSection() {
-  // Hero is above the fold — no entrance animation needed, items show immediately
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -348,8 +383,9 @@ function AboutSection() {
           I am a frontend-focused software engineer who has spent the last three
           years taking full technical ownership of products. From React and
           React Native apps to TypeScript APIs and AI agents, I care most about
-          what the user actually sees and feels. I am currently looking for my
-          next role in Zurich.
+          what the user actually sees and feels. I built this portfolio with
+          Caffeine.ai, so if anything looks off, I guess that is my feedback for
+          the team.
         </p>
         <span className="caffeine-badge fade-in-up delay-3">
           <svg
@@ -376,6 +412,26 @@ function AboutSection() {
 
 function ExperienceSection() {
   const ref = useScrollFade<HTMLElement>();
+  const svgRef = useRef<SVGPathElement>(null);
+
+  useEffect(() => {
+    const path = svgRef.current;
+    if (!path) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            path.classList.add("animated");
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(path);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section
       ref={ref}
@@ -386,44 +442,157 @@ function ExperienceSection() {
       <div className="portfolio-container">
         <span className="section-label fade-in-up">Career</span>
         <h2 className="section-title fade-in-up delay-1">Experience</h2>
-        <div className="timeline">
-          {EXPERIENCE.map((entry, i) => (
+        <div className="experience-grid">
+          {/* SVG connector — decorative S-curve connecting the cards */}
+          <svg
+            className="experience-svg-connector"
+            aria-hidden="true"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              pointerEvents: "none",
+              overflow: "visible",
+            }}
+          >
+            <path
+              ref={svgRef}
+              className="connector-path"
+              d="M 29 28 C 29 45, 71 45, 71 55 S 71 72, 29 82"
+            />
+          </svg>
+
+          {/* Left column: entry 0 (Founding Engineer) and entry 2 (Air Institute) */}
+          <div className="experience-col-left">
             <article
-              key={entry.company}
-              className="timeline-entry fade-in-up"
-              style={{ transitionDelay: `${i * 150}ms` }}
+              className="exp-card fade-in-up"
+              style={{ marginBottom: 48 }}
             >
-              <div className="timeline-dot" aria-hidden="true" />
-              <header className="timeline-header">
-                <h3 className="timeline-role">{entry.role}</h3>
-                <span className="timeline-company">{entry.company}</span>
-                <div className="timeline-meta">
-                  <span className="timeline-period">{entry.period}</span>
-                  <span className="timeline-location">
-                    <MapPin
-                      size={11}
-                      style={{
-                        display: "inline",
-                        verticalAlign: "middle",
-                        marginRight: 3,
-                        marginTop: -2,
-                      }}
-                      aria-hidden="true"
-                    />
-                    {entry.location}
-                  </span>
-                </div>
-              </header>
-              <ul className="timeline-bullets">
-                {entry.bullets.map((bullet) => (
+              <h3 className="exp-role">{EXPERIENCE[0].role}</h3>
+              <div className="exp-company">{EXPERIENCE[0].company}</div>
+              <div className="exp-meta">
+                <span className="exp-period">{EXPERIENCE[0].period}</span>
+                <span className="exp-location">{EXPERIENCE[0].location}</span>
+              </div>
+              <ul className="exp-bullets">
+                {EXPERIENCE[0].bullets.map((bullet) => (
                   <li key={bullet}>{bullet}</li>
                 ))}
               </ul>
             </article>
-          ))}
+
+            <article className="exp-card fade-in-up delay-2">
+              <h3 className="exp-role">{EXPERIENCE[2].role}</h3>
+              <div className="exp-company">{EXPERIENCE[2].company}</div>
+              <div className="exp-meta">
+                <span className="exp-period">{EXPERIENCE[2].period}</span>
+                <span className="exp-location">{EXPERIENCE[2].location}</span>
+              </div>
+              <ul className="exp-bullets">
+                {EXPERIENCE[2].bullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+            </article>
+          </div>
+
+          {/* Right column: entry 1 (BISITE) */}
+          <div className="experience-col-right">
+            <article className="exp-card fade-in-up delay-1">
+              <h3 className="exp-role">{EXPERIENCE[1].role}</h3>
+              <div className="exp-company">{EXPERIENCE[1].company}</div>
+              <div className="exp-meta">
+                <span className="exp-period">{EXPERIENCE[1].period}</span>
+                <span className="exp-location">{EXPERIENCE[1].location}</span>
+              </div>
+              <ul className="exp-bullets">
+                {EXPERIENCE[1].bullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+            </article>
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function ProjectCard({
+  project,
+  index,
+}: {
+  project: (typeof PROJECTS)[0];
+  index: number;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useRef(
+    typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (prefersReducedMotion.current) return;
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((y - centerY) / centerY) * -4;
+    const rotateY = ((x - centerX) / centerX) * 4;
+    card.style.transition = "box-shadow 300ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  };
+
+  const handleMouseLeave = () => {
+    const card = cardRef.current;
+    if (!card) return;
+    card.style.transition =
+      "transform 300ms cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 300ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+    card.style.transform = "perspective(800px) rotateX(0deg) rotateY(0deg)";
+  };
+
+  return (
+    <article
+      ref={cardRef}
+      className="project-card fade-in-up"
+      style={{ transitionDelay: `${index * 60}ms` }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="project-card-header">
+        <h3 className="project-title">{project.title}</h3>
+        {project.link && (
+          <a
+            href={
+              project.link.startsWith("http")
+                ? project.link
+                : `https://${project.link}`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="project-arrow-icon"
+            aria-label={`Visit ${project.title}`}
+          >
+            <ArrowUpRight size={16} strokeWidth={1.8} />
+          </a>
+        )}
+      </div>
+      <p className="project-desc">{project.desc}</p>
+      <div className="project-tags">
+        {project.tags.map((tag) => (
+          <span key={tag} className="project-tag">
+            {tag}
+          </span>
+        ))}
+      </div>
+    </article>
   );
 }
 
@@ -443,34 +612,7 @@ function ProjectsSection() {
         </h2>
         <div className="projects-grid">
           {PROJECTS.map((project, i) => (
-            <article
-              key={project.title}
-              className="project-card fade-in-up"
-              style={{ transitionDelay: `${i * 100}ms` }}
-            >
-              <div className="project-card-header">
-                <h3 className="project-title">{project.title}</h3>
-                {project.link && (
-                  <a
-                    href={project.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="project-link-icon"
-                    aria-label={`View ${project.title} on GitHub`}
-                  >
-                    <ExternalLink size={15} strokeWidth={1.8} />
-                  </a>
-                )}
-              </div>
-              <p className="project-desc">{project.desc}</p>
-              <div className="project-tags">
-                {project.tags.map((tag) => (
-                  <span key={tag} className="project-tag">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </article>
+            <ProjectCard key={project.title} project={project} index={i} />
           ))}
         </div>
       </div>
@@ -595,7 +737,7 @@ function ContactSection() {
           </a>
         </div>
         <p className="contact-tagline fade-in-up delay-3">
-          Open to opportunities in Zurich, Switzerland
+          Currently open to new opportunities
         </p>
         <a
           href="mailto:marioprieta@gmail.com"

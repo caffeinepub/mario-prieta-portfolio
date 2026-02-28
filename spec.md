@@ -2,56 +2,129 @@
 
 ## Current State
 
-Single-page React portfolio with:
-- Flat `#FAFAFA` background (`oklch(0.981 0 0)`)
-- Nav with "MP" logo on left, links on right, no active state indicator
-- Timeline with line/dot anchored to left edge (`padding-left: 36px`, `left: 6px`)
-- Scroll fade-in animations using `useScrollFade` hook + `.fade-in-up` CSS class
-- Fixed delays via `.delay-1` through `.delay-5` classes (not staggered per-item)
-- `scroll-behavior: smooth` already set on `html`
-- No per-section entrance animation (sections themselves don't animate, only children)
-- Caffeine badge in About section has no special animation
+Single-page portfolio built in React + TypeScript with Tailwind CSS + custom CSS in `/src/frontend/index.css`. The app has these components:
+
+- `GradientMesh` – four fixed blurred blobs (teal/lavender), low opacity
+- `Nav` – sticky, transparent-background, centered links with an active underline indicator; mobile hamburger
+- `HeroSection` – name, subtitle, tagline, three social icon links; no entrance animation
+- `AboutSection` – 3-sentence bio paragraph + Caffeine badge; currently mentions "looking for my next role in Zurich" (must change)
+- `ExperienceSection` – vertical center-line timeline with three entries
+- `ProjectsSection` – 2-column card grid (5 cards); basic hover lift
+- `SkillsSection` – category label + pill row per group
+- `EducationSection` – left teal border block
+- `ContactSection` – centered links + CTA button; currently says "Open to opportunities in Zurich, Switzerland" (must change)
+- `Footer` – copyright + Caffeine link
+
+CSS: `index.css` with OKLCH design tokens, Inter/General Sans body font, `fade-in-up` scroll animation system (400ms ease-out), navbar styles.
+`index.html`: meta descriptions still mention "Zurich" (must be updated).
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Gradient mesh background**: Fixed-position pseudo-element or layered divs with soft watercolor blobs: teal tint `#F0FDFA`, lavender `#F5F3FF`, off-white `#FAFAFA`. Very low opacity (10–15%), heavily blurred (200px+), `position: fixed`, `z-index: -1`.
-- **Navbar active section indicator**: Teal underline/dot below the active nav link, smoothly transitioning (300ms ease) as active section changes. Active section detected via IntersectionObserver on sections.
-- **Per-section entrance animation**: Each `<section>` itself fades in and slides up (translateY 20px → 0) on viewport entry, trigger once.
-- **Timeline stagger**: Each `.timeline-entry` staggered 150ms apart when scrolling into view.
-- **Project card stagger**: Each `.project-card` staggered 100ms apart.
-- **Skill pill stagger**: Each `.skill-pill` staggered 50ms apart.
-- **Caffeine badge pulse/glow animation**: On first appearance, badge pulses or glows once.
+
+**Typography system:**
+- Load "Instrument Serif" from Google Fonts (for headlines)
+- Load "JetBrains Mono" from Google Fonts (for mono accents: dates, tags, period labels)
+- Body font is already "General Sans" via local font-face — keep it, just ensure it takes effect
+- Apply `font-family: 'Instrument Serif', serif` to: `.hero-name`, `.section-title`, all `h2` heading-level elements
+- Apply `font-family: 'JetBrains Mono', monospace` to: `.timeline-period`, `.timeline-location`, date/period spans, `.project-tag`, `.skill-pill`, `.education-years`
+- `font-variant-numeric: tabular-nums` on all elements using JetBrains Mono
+- `text-wrap: balance` on all headings (h1, h2, h3, .hero-name, .section-title)
+- Hero name: `font-size: clamp(2.5rem, 5vw, 4.5rem)` — wait, current is larger (clamp(48px,7.5vw,80px)), keep the larger size as-is since the request says "Large sizes" — use `clamp(2.5rem, 5vw, 4.5rem)` only if it would be smaller; actually the spec says use that clamp so use it exactly.
+
+**Navbar – Scroll Progress Timeline (full rebuild):**
+- Remove current underline-per-link active state
+- New layout: full-width sticky bar with NO background color (transparent); `backdrop-filter: blur(8px)` remains
+- A single horizontal line (1.5px, `#E5E7EB`) spans 100% width at the bottom of the navbar
+- Section labels sit ABOVE the line, in a row, evenly spaced
+- A teal fill line overlays the gray line, starting at 0 and expanding right proportional to total page scroll progress (`scaleX` from `transform-origin: left`)
+- At the position of each section on the line, place a 6px dot; dots are gray by default, turn teal as progress reaches them
+- Active section label: teal color + `font-weight: 600`
+- Progress/dot transitions: `150ms cubic-bezier(0.25, 0.1, 0.25, 1)` — use only `transform` and `opacity`
+- On nav link click: smooth scroll to section; each section gets `scroll-margin-top: 80px`
+- Mobile: keep hamburger menu approach (progress timeline collapses on mobile)
+
+**Experience – Staggered Zigzag Layout:**
+- Remove the vertical center timeline entirely (`.timeline`, `.timeline-dot`, `::before`)
+- New layout: CSS Grid with two columns (~58% left / ~42% right)
+- Card 1 (Founding Engineer, Supahost AI) → left column
+- Card 2 (Full-Stack Dev, BISITE) → right column, slightly lower (margin-top offset)
+- Card 3 (Trainee Full-Stack, Air Institute) → left column
+- Each card: `border-left: 3px solid #0D9488`, `border-radius: 12px`, `padding: 24px`, subtle white/near-white background
+- Hover: `translateY(-4px)` + box-shadow; animate ONLY `transform` and `box-shadow`
+- SVG curved path connecting the three cards in flow order; dashed `#E5E7EB` by default; animates to solid teal via `stroke-dashoffset` as user scrolls past (IntersectionObserver driven)
+
+**Projects – Updated Cards + 6 Cards + 3D Tilt:**
+- Update data: 6 cards in exact order specified (add GlobalTrends, update NearBuy desc, update HP-Enjoyers, update Supahost link)
+- Grid: 3 columns desktop (>1024px), 2 tablet, 1 mobile
+- 3D perspective tilt: mouse position drives `rotateX`/`rotateY` (max ±4deg) via `perspective(800px)`; NO transition on mousemove, 300ms ease-out on mouseleave
+- On hover: tech tag pills animate from `opacity: 0; translateY(8px)` → `opacity: 1; translateY(0)`, staggered 40ms each
+- Cards WITH links: show `ArrowUpRight` icon (top-right corner) that rotates 45deg to `ArrowRight` or similar on hover
+- Cards WITHOUT links: no arrow icon
+- `prefers-reduced-motion`: disable tilt entirely
+
+**Animations – Polish:**
+- All transitions: `cubic-bezier(0.25, 0.1, 0.25, 1)` (replace all `ease-out`, `ease` in transitions)
+- Entrance: 300ms duration (down from 400ms)
+- Stagger between siblings: 60ms (down from 150ms/100ms/50ms where applicable)
+- Animate ONLY `transform` and `opacity` in entrance animations
+- Hero: NO entrance animation (already implemented; ensure it stays)
+- `prefers-reduced-motion`: disable all entrance animations and 3D tilt
 
 ### Modify
-- **Nav**: Remove `nav-logo` ("MP") element. Change `nav-inner` to center nav links horizontally (instead of `justify-content: space-between`). Keep hamburger for mobile.
-- **Timeline centering**: Restructure `.timeline` to center the vertical line and dots relative to the section container width. Currently `left: 6px` / `padding-left: 36px` — needs to be genuinely centered (e.g. using a centered column layout with the line running through the center).
-- **Fade-in animation**: Change duration to 400ms, timing to ease-out. Change translateY from 24px to 20px.
-- **Hero section**: Hero children remain instantly visible (no entrance animation delay), as currently implemented. Ensure hero section itself has no entrance animation.
-- **Stagger implementation**: Replace generic `.delay-1/.delay-2/...` classes with inline `style` transitionDelay for precise per-item stagger (150ms timeline, 100ms projects, 50ms skills).
+
+**About text:** Replace current "I am currently looking for my next role in Zurich." with the new paragraph ending "I built this portfolio with Caffeine.ai, so if anything looks off, I guess that is my feedback for the team."
+
+**Contact tagline:** Change "Open to opportunities in Zurich, Switzerland" → "Currently open to new opportunities"
+
+**`index.html` meta descriptions:** Remove all "Zurich"/"Switzerland" references from description/og/twitter tags.
+
+**Caffeine badge:** Update border color to teal (`#0D9488`) border, keep as subtle pill.
+
+**`useScrollFade` hook:** Update transition timings to 300ms and `cubic-bezier(0.25, 0.1, 0.25, 1)`.
+
+**`useActiveSection` hook:** Keep IntersectionObserver logic; also export scroll progress (0–1) for the navbar progress bar, or compute it inside the Nav component via `window.scrollY / (document.body.scrollHeight - window.innerHeight)`.
 
 ### Remove
-- `nav-logo` element (the "MP" link) from the Nav component.
+
+- All mentions of "Zurich" or "Switzerland" from the entire codebase (App.tsx, index.html, any strings)
+- Vertical timeline styles and DOM structure from ExperienceSection
+- The old navbar active underline-per-link system (replace entirely)
+- HP-Enjoyers old GitHub link (card 6 has no external link per spec)
+- Old 5-card PROJECTS array (replace with 6-card array)
 
 ## Implementation Plan
 
-1. **Background mesh**: Add a fixed `<div>` with `pointer-events: none` and `z-index: -1` containing 3–4 blurred radial gradient blobs (teal, lavender, off-white) using CSS `filter: blur(200px)` or `backdrop-filter`. Low opacity (0.12–0.15). Add to `App.tsx` root.
+1. **Update `index.html`** – Remove Zurich/Switzerland from all meta tags; add Google Fonts `<link>` preconnect + stylesheet for Instrument Serif and JetBrains Mono.
 
-2. **Nav active indicator**: 
-   - Add `useActiveSection` hook that uses IntersectionObserver to track which section is currently in view (by section id).
-   - Pass `activeSection` to Nav as prop or via context.
-   - Add a small teal underline (`::after` pseudo-element or an absolutely-positioned `<span>`) per nav link that shows when active.
-   - Use CSS transition 300ms ease on opacity/width for the underline.
+2. **Update `index.css`** – 
+   - Add font-family CSS variables for serif and mono fonts
+   - Apply `font-family: 'Instrument Serif', serif` to hero-name, section-title, h2 selectors
+   - Apply `font-family: 'JetBrains Mono', monospace` + `font-variant-numeric: tabular-nums` to period/date/tag/pill selectors
+   - Add `text-wrap: balance` to all headings
+   - Replace all `ease-out` / `ease` in transitions with `cubic-bezier(0.25, 0.1, 0.25, 1)`
+   - Change entrance animation duration to 300ms
+   - Rebuild navbar CSS for the scroll-progress-timeline layout (remove old underline styles, add horizontal line + dots + fill)
+   - Add experience zigzag grid CSS
+   - Add SVG path animation keyframes
+   - Update project grid to 3-col desktop
+   - Add 3D tilt CSS (perspective container)
+   - Add tag pill entrance animation on hover
+   - Update stagger delays to 60ms increments
+   - `prefers-reduced-motion` block: disable entrance animations and tilt
+   - Update `.caffeine-badge` to have teal border
 
-3. **Nav restructure**: Remove `nav-logo` from JSX. Change `nav-inner` layout to `justify-content: center` for the links. Keep hamburger visible on mobile at far right using `position: absolute` or flex spacer.
+3. **Update `App.tsx`** –
+   - Fix about text (remove Zurich reference, add Caffeine.ai mention)
+   - Fix contact tagline text
+   - Update PROJECTS array: 6 cards with correct data, links, no-link flags
+   - Rebuild `Nav` component: compute scroll progress (0–1) via scroll event, calculate per-section dot positions, render progress line with scaleX, render dots, render labels above line; click handlers smooth-scroll to sections
+   - Rebuild `ExperienceSection`: remove timeline DOM, use zigzag two-column grid with cards, add SVG path overlay
+   - Rebuild `ProjectsSection`: add 3D tilt mouse handlers per card, add hover tag animation, conditional arrow icon
+   - Ensure all sections have `scroll-margin-top: 80px`
+   - Remove `<MapPin>` icon usage if no longer needed or keep for location display
+   - Update `useScrollFade` calls to use 300ms/60ms timing
 
-4. **Timeline centering**: Switch to a centered two-column layout where the vertical line runs down the center, or use a single-column layout with the line centered. A clean approach: make `.timeline` use `position: relative` with a centered pseudo-element (`left: 50%`), and each entry is full-width with the dot absolutely positioned at center. For simplicity, center line at a fixed offset that matches content.
+4. **Update `useActiveSection.ts`** – Keep as-is or adapt to also support the Nav's scroll-progress calculation (can be handled inline in Nav).
 
-5. **Animation overhaul**:
-   - Update `.fade-in-up` transition to `400ms ease-out`.
-   - Update translateY to 20px.
-   - Add `.section-animate` class for section-level entrance animation.
-   - Apply IntersectionObserver on sections in each section component.
-   - For timeline/projects/skills: assign inline `transitionDelay` based on item index × stagger interval in JSX.
-
-6. **Caffeine badge animation**: Add a `@keyframes caffeine-pulse` that applies a soft glow on first appearance. Use `animation-fill-mode: forwards` so it triggers once.
+5. **Validate** – typecheck, lint, build.
