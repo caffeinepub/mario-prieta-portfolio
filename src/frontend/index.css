@@ -154,6 +154,10 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+  /* Soft 3px dissolve at the very bottom edge — dot and line stay fully sharp */
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 3px), transparent 100%);
+  mask-image: linear-gradient(to bottom, black calc(100% - 3px), transparent 100%);
+  overflow: hidden;
 }
 
 .nav-progress-container {

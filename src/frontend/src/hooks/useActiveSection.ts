@@ -26,9 +26,9 @@ const SECTION_IDS = [
  * Returns the id of the active section (without the "#" prefix).
  */
 export function useActiveSection(): string {
-  const [activeSection, setActiveSection] = useState<string>("hero");
+  const [activeSection, setActiveSection] = useState<string>("about");
   // Track all currently-intersecting section ids (center-zone observer)
-  const intersectingIds = useRef<Set<string>>(new Set(["hero"]));
+  const intersectingIds = useRef<Set<string>>(new Set(["about"]));
 
   useEffect(() => {
     const sectionElements = SECTION_IDS.map((id) =>
