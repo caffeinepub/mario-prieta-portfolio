@@ -52,12 +52,6 @@ const EXPERIENCE = [
 
 const PROJECTS = [
   {
-    title: "Supahost AI",
-    desc: "AI-powered hospitality operations platform. Offline-first React Native app with real-time sync.",
-    tags: ["React Native", "TypeScript", "PostgreSQL", "Python"],
-    link: "https://app.supahost.ai/",
-  },
-  {
     title: "QuakeSense",
     desc: "1st Place, NASA Space Apps Challenge. Seismic event detection with 97% ML precision.",
     tags: ["Vue.js", "Python", "Three.js", "Docker"],
@@ -132,6 +126,24 @@ const SKILLS = [
 // ─── Gradient Mesh Background ─────────────────────────────────────────────────
 
 function GradientMesh() {
+  const bgRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let rafId: number;
+    const handleScroll = () => {
+      rafId = requestAnimationFrame(() => {
+        if (bgRef.current) {
+          bgRef.current.style.transform = `translateY(${window.scrollY * 0.3}px)`;
+        }
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   return (
     <div
       aria-hidden="true"
@@ -143,60 +155,27 @@ function GradientMesh() {
         overflow: "hidden",
       }}
     >
-      {/* Top-left teal blob */}
+      {/* Tall inner element that parallax-scrolls */}
       <div
+        ref={bgRef}
         style={{
           position: "absolute",
-          top: "-100px",
-          left: "-100px",
-          width: "600px",
-          height: "600px",
-          borderRadius: "50%",
-          background: "#F0FDFA",
-          filter: "blur(220px)",
-          opacity: 0.12,
-        }}
-      />
-      {/* Bottom-right lavender blob */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "-120px",
-          right: "-120px",
-          width: "580px",
-          height: "580px",
-          borderRadius: "50%",
-          background: "#F5F3FF",
-          filter: "blur(240px)",
-          opacity: 0.13,
-        }}
-      />
-      {/* Center-right warm blob */}
-      <div
-        style={{
-          position: "absolute",
-          top: "40%",
-          right: "10%",
-          width: "450px",
-          height: "450px",
-          borderRadius: "50%",
-          background: "#F0FDFA",
-          filter: "blur(200px)",
-          opacity: 0.1,
-        }}
-      />
-      {/* Mid-left lavender accent */}
-      <div
-        style={{
-          position: "absolute",
-          top: "55%",
-          left: "-80px",
-          width: "400px",
-          height: "400px",
-          borderRadius: "50%",
-          background: "#F5F3FF",
-          filter: "blur(210px)",
-          opacity: 0.1,
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "400vh",
+          /* Blobs distributed at 10%, 35%, 60%, 85% of element height */
+          background: `
+            radial-gradient(ellipse 80% 25% at 20% 10%,  rgba(13,148,136,0.06)  0%, transparent 70%),
+            radial-gradient(ellipse 60% 25% at 80% 10%,  rgba(139,92,246,0.04)  0%, transparent 70%),
+            radial-gradient(ellipse 70% 25% at 30% 35%,  rgba(13,148,136,0.05)  0%, transparent 70%),
+            radial-gradient(ellipse 60% 25% at 75% 35%,  rgba(139,92,246,0.03)  0%, transparent 70%),
+            radial-gradient(ellipse 80% 25% at 25% 60%,  rgba(13,148,136,0.06)  0%, transparent 70%),
+            radial-gradient(ellipse 65% 25% at 70% 60%,  rgba(139,92,246,0.04)  0%, transparent 70%),
+            radial-gradient(ellipse 70% 25% at 40% 85%,  rgba(13,148,136,0.05)  0%, transparent 70%),
+            radial-gradient(ellipse 60% 25% at 80% 85%,  rgba(139,92,246,0.03)  0%, transparent 70%),
+            #FAFAFA
+          `,
         }}
       />
     </div>
@@ -206,25 +185,27 @@ function GradientMesh() {
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function Nav() {
-  const [scrollProgress, setScrollProgress] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const activeSection = useActiveSection();
+  const labelRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [dotX, setDotX] = useState(0);
+  const [lineTealWidth, setLineTealWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => {
-      const scrollTop = window.scrollY;
-      const docHeight =
-        document.documentElement.scrollHeight - window.innerHeight;
-      const progress = docHeight > 0 ? scrollTop / docHeight : 0;
-      setScrollProgress(progress);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const sections = NAV_LINKS.map((l) => l.href.slice(1));
-  const dotPositions = sections.map((_, i) => i / (sections.length - 1));
+    const activeIndex = NAV_LINKS.findIndex(
+      (l) => l.href.slice(1) === activeSection,
+    );
+    if (activeIndex === -1) return;
+    const labelEl = labelRefs.current[activeIndex];
+    const containerEl = containerRef.current;
+    if (!labelEl || !containerEl) return;
+    const labelRect = labelEl.getBoundingClientRect();
+    const containerRect = containerEl.getBoundingClientRect();
+    const centerX = labelRect.left + labelRect.width / 2 - containerRect.left;
+    setDotX(centerX);
+    setLineTealWidth(centerX);
+  }, [activeSection]);
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
@@ -236,12 +217,15 @@ function Nav() {
 
   return (
     <header className="nav-wrapper">
-      {/* Desktop: scroll progress timeline */}
+      {/* Desktop: single-dot progress timeline */}
       <div className="nav-progress-container">
         <nav className="nav-labels" aria-label="Primary navigation">
-          {NAV_LINKS.map((link) => (
+          {NAV_LINKS.map((link, i) => (
             <a
               key={link.href}
+              ref={(el) => {
+                labelRefs.current[i] = el;
+              }}
               href={link.href}
               className={`nav-label-item${activeSection === link.href.slice(1) ? " active" : ""}`}
               onClick={(e) => {
@@ -253,21 +237,18 @@ function Nav() {
             </a>
           ))}
         </nav>
-        <div className="nav-line-row">
+        <div ref={containerRef} className="nav-line-row">
+          {/* Gray full track */}
           <div className="nav-line-track" />
+          {/* Teal fill from left to dot position */}
+          <div className="nav-line-teal" style={{ width: lineTealWidth }} />
+          {/* Single glowing dot */}
           <div
-            className="nav-line-fill"
+            className="nav-dot-active"
             style={{
-              transform: `translateY(-50%) scaleX(${scrollProgress})`,
+              transform: `translateX(calc(${dotX}px - 50%)) translateY(-50%)`,
             }}
           />
-          {dotPositions.map((pos, i) => (
-            <div
-              key={sections[i]}
-              className={`nav-dot${scrollProgress >= pos - 0.01 ? " reached" : ""}`}
-              style={{ left: `${pos * 100}%` }}
-            />
-          ))}
         </div>
       </div>
 
@@ -377,17 +358,16 @@ function AboutSection() {
   return (
     <section ref={ref} id="about" className="section" aria-label="About">
       <div className="portfolio-container">
-        <span className="section-label fade-in-up">About</span>
-        <h2 className="section-title fade-in-up delay-1">Who I am</h2>
-        <p className="about-text fade-in-up delay-2">
+        <h2 className="section-title fade-in-up">Who I am</h2>
+        <p className="about-text fade-in-up delay-1">
           I am a frontend-focused software engineer who has spent the last three
           years taking full technical ownership of products. From React and
           React Native apps to TypeScript APIs and AI agents, I care most about
           what the user actually sees and feels. I built this portfolio with
-          Caffeine.ai, so if anything looks off, I guess that is my feedback for
-          the team.
+          Caffeine.ai, which I suppose makes this both a resume and a product
+          demo.
         </p>
-        <span className="caffeine-badge fade-in-up delay-3">
+        <span className="caffeine-badge fade-in-up delay-2">
           <svg
             width="12"
             height="12"
@@ -412,25 +392,6 @@ function AboutSection() {
 
 function ExperienceSection() {
   const ref = useScrollFade<HTMLElement>();
-  const svgRef = useRef<SVGPathElement>(null);
-
-  useEffect(() => {
-    const path = svgRef.current;
-    if (!path) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            path.classList.add("animated");
-            observer.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.5 },
-    );
-    observer.observe(path);
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <section
@@ -440,32 +401,8 @@ function ExperienceSection() {
       aria-label="Experience"
     >
       <div className="portfolio-container">
-        <span className="section-label fade-in-up">Career</span>
         <h2 className="section-title fade-in-up delay-1">Experience</h2>
         <div className="experience-grid">
-          {/* SVG connector — decorative S-curve connecting the cards */}
-          <svg
-            className="experience-svg-connector"
-            aria-hidden="true"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              pointerEvents: "none",
-              overflow: "visible",
-            }}
-          >
-            <path
-              ref={svgRef}
-              className="connector-path"
-              d="M 29 28 C 29 45, 71 45, 71 55 S 71 72, 29 82"
-            />
-          </svg>
-
           {/* Left column: entry 0 (Founding Engineer) and entry 2 (Air Institute) */}
           <div className="experience-col-left">
             <article
@@ -546,7 +483,7 @@ function ProjectCard({
     const centerY = rect.height / 2;
     const rotateX = ((y - centerY) / centerY) * -4;
     const rotateY = ((x - centerX) / centerX) * 4;
-    card.style.transition = "box-shadow 300ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+    card.style.transition = "none"; // INSTANT on mousemove
     card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
   };
 
@@ -554,7 +491,7 @@ function ProjectCard({
     const card = cardRef.current;
     if (!card) return;
     card.style.transition =
-      "transform 300ms cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 300ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+      "transform 250ms ease-out, box-shadow 250ms ease-out";
     card.style.transform = "perspective(800px) rotateX(0deg) rotateY(0deg)";
   };
 
@@ -606,10 +543,7 @@ function ProjectsSection() {
       aria-label="Projects and Hackathons"
     >
       <div className="portfolio-container">
-        <span className="section-label fade-in-up">Work</span>
-        <h2 className="section-title fade-in-up delay-1">
-          Projects &amp; Hackathons
-        </h2>
+        <h2 className="section-title fade-in-up">Projects &amp; Hackathons</h2>
         <div className="projects-grid">
           {PROJECTS.map((project, i) => (
             <ProjectCard key={project.title} project={project} index={i} />
@@ -625,8 +559,7 @@ function SkillsSection() {
   return (
     <section ref={ref} id="skills" className="section" aria-label="Skills">
       <div className="portfolio-container">
-        <span className="section-label fade-in-up">Expertise</span>
-        <h2 className="section-title fade-in-up delay-1">Skills</h2>
+        <h2 className="section-title fade-in-up">Skills</h2>
         <div className="skills-table">
           {SKILLS.map((group, groupIndex) => (
             <div
@@ -668,8 +601,7 @@ function EducationSection() {
       aria-label="Education"
     >
       <div className="portfolio-container">
-        <span className="section-label fade-in-up">Academic</span>
-        <h2 className="section-title fade-in-up delay-1">Education</h2>
+        <h2 className="section-title fade-in-up">Education</h2>
         <div className="education-block fade-in-up delay-2">
           <h3 className="education-degree">
             Bachelor&apos;s in Computer Science
@@ -695,18 +627,10 @@ function EducationSection() {
 function ContactSection() {
   const ref = useScrollFade<HTMLElement>();
   return (
-    <section
-      ref={ref}
-      id="contact"
-      className="section contact-section"
-      aria-label="Contact"
-    >
+    <section ref={ref} id="contact" className="section" aria-label="Contact">
       <div className="portfolio-container">
-        <span className="section-label fade-in-up" style={{ display: "block" }}>
-          Contact
-        </span>
-        <h2 className="section-title fade-in-up delay-1">Let&apos;s connect</h2>
-        <div className="contact-items fade-in-up delay-2">
+        <h2 className="section-title fade-in-up">Contact</h2>
+        <div className="contact-items fade-in-up delay-1">
           <a
             href="mailto:marioprieta@gmail.com"
             className="contact-item"
@@ -736,16 +660,6 @@ function ContactSection() {
             github.com/mariops03
           </a>
         </div>
-        <p className="contact-tagline fade-in-up delay-3">
-          Currently open to new opportunities
-        </p>
-        <a
-          href="mailto:marioprieta@gmail.com"
-          className="cta-button fade-in-up delay-4"
-        >
-          Get in touch
-          <Mail size={15} strokeWidth={2} aria-hidden="true" />
-        </a>
       </div>
     </section>
   );
@@ -759,19 +673,13 @@ function SectionDivider() {
 
 function Footer() {
   const year = new Date().getFullYear();
-  const hostname =
-    typeof window !== "undefined" ? window.location.hostname : "";
-  const caffeineUrl = `https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(hostname)}`;
 
   return (
     <footer className="site-footer">
       <div className="portfolio-container">
         <p className="footer-copy">© {year} Mario Prieta</p>
-        <p className="footer-built">
-          Built with love using{" "}
-          <a href={caffeineUrl} target="_blank" rel="noopener noreferrer">
-            caffeine.ai
-          </a>
+        <p className="footer-tagline">
+          Built with love using Caffeine.ai. If you are reading this, it worked.
         </p>
       </div>
     </footer>
