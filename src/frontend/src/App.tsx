@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useActiveSection } from "./hooks/useActiveSection";
 import { useScrollFade } from "./hooks/useScrollFade";
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
@@ -130,11 +131,86 @@ const SKILLS = [
   },
 ];
 
+// ─── Gradient Mesh Background ─────────────────────────────────────────────────
+
+function GradientMesh() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: -1,
+        pointerEvents: "none",
+        overflow: "hidden",
+      }}
+    >
+      {/* Top-left teal blob */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-100px",
+          left: "-100px",
+          width: "600px",
+          height: "600px",
+          borderRadius: "50%",
+          background: "#F0FDFA",
+          filter: "blur(220px)",
+          opacity: 0.12,
+        }}
+      />
+      {/* Bottom-right lavender blob */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-120px",
+          right: "-120px",
+          width: "580px",
+          height: "580px",
+          borderRadius: "50%",
+          background: "#F5F3FF",
+          filter: "blur(240px)",
+          opacity: 0.13,
+        }}
+      />
+      {/* Center-right warm blob */}
+      <div
+        style={{
+          position: "absolute",
+          top: "40%",
+          right: "10%",
+          width: "450px",
+          height: "450px",
+          borderRadius: "50%",
+          background: "#F0FDFA",
+          filter: "blur(200px)",
+          opacity: 0.1,
+        }}
+      />
+      {/* Mid-left lavender accent */}
+      <div
+        style={{
+          position: "absolute",
+          top: "55%",
+          left: "-80px",
+          width: "400px",
+          height: "400px",
+          borderRadius: "50%",
+          background: "#F5F3FF",
+          filter: "blur(210px)",
+          opacity: 0.1,
+        }}
+      />
+    </div>
+  );
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const activeSection = useActiveSection();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -149,14 +225,18 @@ function Nav() {
   return (
     <header className={`nav-wrapper${scrolled ? " scrolled" : ""}`}>
       <div className="nav-inner">
-        <a href="#hero" className="nav-logo" aria-label="Mario Prieta — top">
-          MP
-        </a>
         <nav aria-label="Primary navigation">
           <ul className="nav-links">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
-                <a href={link.href}>{link.label}</a>
+                <a
+                  href={link.href}
+                  className={
+                    activeSection === link.href.slice(1) ? "active" : ""
+                  }
+                >
+                  {link.label}
+                </a>
               </li>
             ))}
           </ul>
@@ -176,7 +256,12 @@ function Nav() {
         aria-label="Mobile navigation"
       >
         {NAV_LINKS.map((link) => (
-          <a key={link.href} href={link.href} onClick={handleNavClick}>
+          <a
+            key={link.href}
+            href={link.href}
+            className={activeSection === link.href.slice(1) ? "active" : ""}
+            onClick={handleNavClick}
+          >
             {link.label}
           </a>
         ))}
@@ -186,50 +271,69 @@ function Nav() {
 }
 
 function HeroSection() {
-  const ref = useScrollFade<HTMLElement>();
+  // Hero is above the fold — no entrance animation needed, items show immediately
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const targets = el.querySelectorAll<HTMLElement>(".fade-in-up");
+    targets.forEach((target, i) => {
+      setTimeout(
+        () => {
+          target.classList.add("visible");
+        },
+        80 + i * 100,
+      );
+    });
+  }, []);
+
   return (
-    <section ref={ref} className="hero-section" id="hero" aria-label="Hero">
-      <div className="portfolio-container hero-content">
-        <span className="hero-subtitle fade-in-up">Frontend Engineer</span>
-        <h1 className="hero-name fade-in-up delay-1">Mario Prieta</h1>
-        <p className="hero-tagline fade-in-up delay-2">
-          Building products from zero to production, with frontend at the heart.
-        </p>
-        <ul className="hero-icons fade-in-up delay-3">
-          <li>
-            <a
-              href="https://linkedin.com/in/marioprieta"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hero-icon-link"
-              aria-label="LinkedIn profile"
-            >
-              <Linkedin size={18} strokeWidth={1.8} />
-            </a>
-          </li>
-          <li>
-            <a
-              href="https://github.com/mariops03"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hero-icon-link"
-              aria-label="GitHub profile"
-            >
-              <Github size={18} strokeWidth={1.8} />
-            </a>
-          </li>
-          <li>
-            <a
-              href="mailto:marioprieta@gmail.com"
-              className="hero-icon-link"
-              aria-label="Send email"
-            >
-              <Mail size={18} strokeWidth={1.8} />
-            </a>
-          </li>
-        </ul>
-      </div>
-    </section>
+    <div ref={ref}>
+      <section className="hero-section" id="hero" aria-label="Hero">
+        <div className="portfolio-container hero-content">
+          <span className="hero-subtitle fade-in-up">Frontend Engineer</span>
+          <h1 className="hero-name fade-in-up delay-1">Mario Prieta</h1>
+          <p className="hero-tagline fade-in-up delay-2">
+            Building products from zero to production, with frontend at the
+            heart.
+          </p>
+          <ul className="hero-icons fade-in-up delay-3">
+            <li>
+              <a
+                href="https://linkedin.com/in/marioprieta"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hero-icon-link"
+                aria-label="LinkedIn profile"
+              >
+                <Linkedin size={18} strokeWidth={1.8} />
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/mariops03"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hero-icon-link"
+                aria-label="GitHub profile"
+              >
+                <Github size={18} strokeWidth={1.8} />
+              </a>
+            </li>
+            <li>
+              <a
+                href="mailto:marioprieta@gmail.com"
+                className="hero-icon-link"
+                aria-label="Send email"
+              >
+                <Mail size={18} strokeWidth={1.8} />
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -247,26 +351,24 @@ function AboutSection() {
           what the user actually sees and feels. I am currently looking for my
           next role in Zurich.
         </p>
-        <div className="fade-in-up delay-3">
-          <span className="caffeine-badge">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden="true"
-            >
-              <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-              <line x1="6" y1="1" x2="6" y2="4" />
-              <line x1="10" y1="1" x2="10" y2="4" />
-              <line x1="14" y1="1" x2="14" y2="4" />
-            </svg>
-            Built with Caffeine.ai
-          </span>
-        </div>
+        <span className="caffeine-badge fade-in-up delay-3">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+            <line x1="6" y1="1" x2="6" y2="4" />
+            <line x1="10" y1="1" x2="10" y2="4" />
+            <line x1="14" y1="1" x2="14" y2="4" />
+          </svg>
+          Built with Caffeine.ai
+        </span>
       </div>
     </section>
   );
@@ -288,7 +390,8 @@ function ExperienceSection() {
           {EXPERIENCE.map((entry, i) => (
             <article
               key={entry.company}
-              className={`timeline-entry fade-in-up delay-${Math.min(i + 2, 5) as 1 | 2 | 3 | 4 | 5}`}
+              className="timeline-entry fade-in-up"
+              style={{ transitionDelay: `${i * 150}ms` }}
             >
               <div className="timeline-dot" aria-hidden="true" />
               <header className="timeline-header">
@@ -342,7 +445,8 @@ function ProjectsSection() {
           {PROJECTS.map((project, i) => (
             <article
               key={project.title}
-              className={`project-card fade-in-up delay-${Math.min(i + 2, 5) as 1 | 2 | 3 | 4 | 5}`}
+              className="project-card fade-in-up"
+              style={{ transitionDelay: `${i * 100}ms` }}
             >
               <div className="project-card-header">
                 <h3 className="project-title">{project.title}</h3>
@@ -382,17 +486,24 @@ function SkillsSection() {
         <span className="section-label fade-in-up">Expertise</span>
         <h2 className="section-title fade-in-up delay-1">Skills</h2>
         <div className="skills-table">
-          {SKILLS.map((group, i) => (
+          {SKILLS.map((group, groupIndex) => (
             <div
               key={group.category}
-              className={`skill-row fade-in-up delay-${Math.min(i + 2, 5) as 1 | 2 | 3 | 4 | 5}`}
+              className="skill-row fade-in-up"
+              style={{ transitionDelay: `${groupIndex * 80}ms` }}
             >
               <span className="skill-category" aria-label={group.category}>
                 {group.category}
               </span>
               <ul className="skill-pills">
-                {group.items.map((item) => (
-                  <li key={item} className="skill-pill">
+                {group.items.map((item, itemIndex) => (
+                  <li
+                    key={item}
+                    className="skill-pill fade-in-up"
+                    style={{
+                      transitionDelay: `${groupIndex * 80 + itemIndex * 50}ms`,
+                    }}
+                  >
                     {item}
                   </li>
                 ))}
@@ -528,31 +639,12 @@ function Footer() {
 // ─── Root ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // Observe hero section for initial fade-in
-  const heroFadeRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = heroFadeRef.current;
-    if (!el) return;
-    const targets = el.querySelectorAll<HTMLElement>(".fade-in-up");
-    // Hero items stagger in immediately on load
-    targets.forEach((target, i) => {
-      setTimeout(
-        () => {
-          target.classList.add("visible");
-        },
-        80 + i * 100,
-      );
-    });
-  }, []);
-
   return (
     <div className="min-h-screen">
+      <GradientMesh />
       <Nav />
       <main>
-        <div ref={heroFadeRef}>
-          <HeroSection />
-        </div>
+        <HeroSection />
         <SectionDivider />
         <AboutSection />
         <SectionDivider />
