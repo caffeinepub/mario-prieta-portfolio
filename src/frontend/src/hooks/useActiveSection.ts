@@ -11,24 +11,22 @@ const SECTION_IDS = [
 ];
 
 /**
- * Tracks which section is currently in view using IntersectionObserver.
- * Uses rootMargin "-50% 0px -50% 0px" so a section only becomes active
- * when it crosses the vertical center of the viewport.
- * If multiple sections overlap the center zone, the one whose center is
- * closest to the viewport center wins.
+ * Tracks which section is currently active based on scroll position.
  *
- * Special case: when the user is in the bottom 30% of the page
- * (window.scrollY + window.innerHeight > document.body.scrollHeight * 0.7),
- * the most-visible section in the viewport becomes active regardless of
- * the center-line rule. This ensures short sections like Education and
- * Contact always highlight at the bottom of the page.
+ * Strategy: a section becomes active as soon as its title enters the
+ * bottom 30% of the viewport (i.e. when it first becomes visible while
+ * scrolling down). We find the section whose top edge is closest to --
+ * but still within -- the bottom 30% zone of the viewport.
+ *
+ * Bottom-of-page fallback: when the user is in the last 30% of total
+ * page height, the last visible section always wins so that Education
+ * and Contact reliably activate.
  *
  * Returns the id of the active section (without the "#" prefix).
  */
 export function useActiveSection(): string {
   const [activeSection, setActiveSection] = useState<string>("about");
-  // Track all currently-intersecting section ids (center-zone observer)
-  const intersectingIds = useRef<Set<string>>(new Set(["about"]));
+  const rafId = useRef<number>(0);
 
   useEffect(() => {
     const sectionElements = SECTION_IDS.map((id) =>
@@ -37,100 +35,72 @@ export function useActiveSection(): string {
 
     if (sectionElements.length === 0) return;
 
-    /**
-     * Among all currently-intersecting sections, pick the one whose
-     * vertical center is closest to the viewport vertical center.
-     */
-    const pickClosest = () => {
-      const viewportCenter = window.innerHeight / 2;
-      let bestId = "";
-      let bestDistance = Number.POSITIVE_INFINITY;
+    const update = () => {
+      const vh = window.innerHeight;
+      // The detection threshold: bottom 30% of the viewport.
+      // A section becomes active when its top edge enters below this line.
+      const detectionLine = vh * 0.6;
 
-      for (const id of intersectingIds.current) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        const rect = el.getBoundingClientRect();
-        const sectionCenter = rect.top + rect.height / 2;
-        const distance = Math.abs(sectionCenter - viewportCenter);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestId = id;
+      // Bottom-of-page fallback: if we are in the last 30% of the page,
+      // pick the section that is most visible (top edge just above mid-screen).
+      const isNearBottom =
+        window.scrollY + vh > document.body.scrollHeight * 0.7;
+
+      if (isNearBottom) {
+        // Find the last section whose top has scrolled above the mid-screen
+        let active = sectionElements[0].id;
+        for (const el of sectionElements) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= vh * 0.6) {
+            active = el.id;
+          }
         }
+        setActiveSection(active);
+        return;
       }
 
-      if (bestId) {
-        setActiveSection(bestId);
-      }
-    };
-
-    /**
-     * Find the section with the most pixels currently visible in the
-     * viewport. Used when near the bottom of the page.
-     */
-    const pickMostVisible = () => {
-      let bestId = "";
-      let bestVisible = 0;
+      // Normal mode: find the section whose top edge is inside the bottom
+      // 30% zone (between detectionLine and the viewport bottom). Among
+      // multiple candidates, prefer the one closest to the detection line
+      // (i.e. the highest / first-entered). If no section is in the zone,
+      // fall back to the last section that has scrolled above the detection
+      // line (already in view above that threshold).
+      let inZoneCandidate: string | null = null;
+      let inZoneDist = Number.POSITIVE_INFINITY;
+      let aboveLineCandidate = sectionElements[0].id;
 
       for (const el of sectionElements) {
         const rect = el.getBoundingClientRect();
-        const visibleTop = Math.max(0, rect.top);
-        const visibleBottom = Math.min(window.innerHeight, rect.bottom);
-        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-        if (visibleHeight > bestVisible) {
-          bestVisible = visibleHeight;
-          bestId = el.id;
-        }
-      }
 
-      if (bestId) {
-        setActiveSection(bestId);
-      }
-    };
-
-    /**
-     * Check if we are in the bottom 30% of the page.
-     * If so, override the center-zone detection with most-visible logic.
-     */
-    const handleScroll = () => {
-      const nearBottom =
-        window.scrollY + window.innerHeight > document.body.scrollHeight * 0.7;
-      if (nearBottom) {
-        pickMostVisible();
-      }
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            intersectingIds.current.add(entry.target.id);
-          } else {
-            intersectingIds.current.delete(entry.target.id);
+        if (rect.top >= detectionLine && rect.top <= vh) {
+          // Section title is inside the bottom 30% zone
+          const dist = rect.top - detectionLine;
+          if (dist < inZoneDist) {
+            inZoneDist = dist;
+            inZoneCandidate = el.id;
           }
+        } else if (rect.top < detectionLine) {
+          // Section title has already scrolled above the detection line
+          aboveLineCandidate = el.id;
         }
-        // Only apply center-zone pick when NOT near the bottom
-        const nearBottom =
-          window.scrollY + window.innerHeight >
-          document.body.scrollHeight * 0.7;
-        if (!nearBottom) {
-          pickClosest();
-        }
-      },
-      {
-        threshold: 0,
-        rootMargin: "-50% 0px -50% 0px",
-      },
-    );
+      }
 
-    for (const el of sectionElements) {
-      observer.observe(el);
-    }
+      setActiveSection(inZoneCandidate ?? aboveLineCandidate);
+    };
+
+    const handleScroll = () => {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = requestAnimationFrame(update);
+    };
+
+    // Run once on mount so initial state is correct
+    update();
 
     window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
-      observer.disconnect();
       window.removeEventListener("scroll", handleScroll);
+      cancelAnimationFrame(rafId.current);
     };
   }, []);
 
