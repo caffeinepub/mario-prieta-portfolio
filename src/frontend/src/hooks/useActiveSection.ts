@@ -14,9 +14,9 @@ const SECTION_IDS = [
  * Tracks which section is currently active based on scroll position.
  *
  * Strategy: a section becomes active as soon as its title enters the
- * bottom 30% of the viewport (i.e. when it first becomes visible while
- * scrolling down). We find the section whose top edge is closest to --
- * but still within -- the bottom 30% zone of the viewport.
+ * upper 40% of the viewport (i.e. when it crosses 40% from the top).
+ * We find the section whose top edge is closest to -- but still within
+ * -- the zone between 40% and the viewport bottom.
  *
  * Bottom-of-page fallback: when the user is in the last 30% of total
  * page height, the last visible section always wins so that Education
@@ -37,9 +37,9 @@ export function useActiveSection(): string {
 
     const update = () => {
       const vh = window.innerHeight;
-      // The detection threshold: bottom 30% of the viewport.
-      // A section becomes active when its top edge enters below this line.
-      const detectionLine = vh * 0.6;
+      // The detection threshold: 40% from the top of the viewport.
+      // A section becomes active when its top edge crosses this line.
+      const detectionLine = vh * 0.4;
 
       // Bottom-of-page fallback: if we are in the last 30% of the page,
       // pick the section that is most visible (top edge just above mid-screen).
@@ -51,7 +51,7 @@ export function useActiveSection(): string {
         let active = sectionElements[0].id;
         for (const el of sectionElements) {
           const rect = el.getBoundingClientRect();
-          if (rect.top <= vh * 0.6) {
+          if (rect.top <= vh * 0.4) {
             active = el.id;
           }
         }
@@ -59,8 +59,8 @@ export function useActiveSection(): string {
         return;
       }
 
-      // Normal mode: find the section whose top edge is inside the bottom
-      // 30% zone (between detectionLine and the viewport bottom). Among
+      // Normal mode: find the section whose top edge is inside the lower
+      // 60% zone (between detectionLine and the viewport bottom). Among
       // multiple candidates, prefer the one closest to the detection line
       // (i.e. the highest / first-entered). If no section is in the zone,
       // fall back to the last section that has scrolled above the detection
@@ -73,7 +73,7 @@ export function useActiveSection(): string {
         const rect = el.getBoundingClientRect();
 
         if (rect.top >= detectionLine && rect.top <= vh) {
-          // Section title is inside the bottom 30% zone
+          // Section title is inside the lower 60% zone
           const dist = rect.top - detectionLine;
           if (dist < inZoneDist) {
             inZoneDist = dist;
