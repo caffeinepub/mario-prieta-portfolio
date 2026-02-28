@@ -133,10 +133,11 @@ function GradientMesh() {
     const handleScroll = () => {
       rafId = requestAnimationFrame(() => {
         if (bgRef.current) {
-          // The inner element starts at top: -50vh (= -50% of viewport height).
-          // At scrollY=0 we want translateY(0) so it renders from -50vh.
-          // Parallax at 0.3x: as user scrolls down, background moves down 0.3x,
-          // which is intentionally slower than the page — creates depth.
+          // The inner element starts at top: -100vh.
+          // Parallax at 0.3x speed. We offset by -100vh worth of pixels
+          // at scrollY=0 so the element sits at its starting position.
+          // As user scrolls down, the background moves at 0.3x speed,
+          // never exposing blank space at the top.
           bgRef.current.style.transform = `translateY(${window.scrollY * 0.3}px)`;
         }
       });
@@ -160,27 +161,22 @@ function GradientMesh() {
       }}
     >
       {/* Tall inner element that parallax-scrolls.
-          Starts 50vh ABOVE the viewport so the background is never blank
-          at the top when parallax pushes it down.
-          400vh total height covers the full page + parallax overhead. */}
+          Starts 100vh ABOVE the viewport so parallax never reveals blank space.
+          800vh total height with the original 3-blob pattern tiled across
+          the full height at different vertical positions. */}
       <div
         ref={bgRef}
         style={{
           position: "absolute",
-          top: "-50vh",
+          top: "-100vh",
           left: 0,
           right: 0,
-          height: "400vh",
-          /* Blobs at 10%, 35%, 60%, 85% of element height */
+          height: "800vh",
           background: `
-            radial-gradient(ellipse 80% 25% at 20% 10%,  rgba(13,148,136,0.06)  0%, transparent 70%),
-            radial-gradient(ellipse 60% 25% at 80% 10%,  rgba(139,92,246,0.04)  0%, transparent 70%),
-            radial-gradient(ellipse 70% 25% at 30% 35%,  rgba(13,148,136,0.05)  0%, transparent 70%),
-            radial-gradient(ellipse 60% 25% at 75% 35%,  rgba(139,92,246,0.03)  0%, transparent 70%),
-            radial-gradient(ellipse 80% 25% at 25% 60%,  rgba(13,148,136,0.06)  0%, transparent 70%),
-            radial-gradient(ellipse 65% 25% at 70% 60%,  rgba(139,92,246,0.04)  0%, transparent 70%),
-            radial-gradient(ellipse 70% 25% at 40% 85%,  rgba(13,148,136,0.05)  0%, transparent 70%),
-            radial-gradient(ellipse 60% 25% at 80% 85%,  rgba(139,92,246,0.03)  0%, transparent 70%),
+            radial-gradient(ellipse 80% 50% at 20% 20%,  rgba(13,148,136,0.03) 0%, transparent 70%),
+            radial-gradient(ellipse 60% 60% at 80% 60%, rgba(139,92,246,0.04) 0%, transparent 70%),
+            radial-gradient(ellipse 70% 50% at 50% 90%, rgba(13,148,136,0.05) 0%, transparent 70%),
+            radial-gradient(ellipse 65% 45% at 80% 25%,  rgba(13,148,136,0.03) 0%, transparent 70%),
             #FAFAFA
           `,
         }}
